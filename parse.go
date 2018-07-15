@@ -31,6 +31,10 @@ type Parser struct {
 	wg              *sync.WaitGroup
 }
 
+func (p *Parser) GetParsedEvents() []*Event {
+	return p.parsedEvents
+}
+
 // creates new parser
 func New() *Parser {
 	p := new(Parser)
@@ -43,21 +47,23 @@ func New() *Parser {
 	p.parsedEvents = []*Event{}
 
 	// buffers the events output chan
-	go func() {
-		for {
-			if len(p.parsedEvents) > 0 {
-				select {
-				case p.outputChan <- p.parsedEvents[0]:
-					p.parsedEvents = p.parsedEvents[1:]
-				case event := <-p.bufferedChan:
+	/*
+		go func() {
+			for {
+				if len(p.parsedEvents) > 0 {
+					select {
+					case p.outputChan <- p.parsedEvents[0]:
+						p.parsedEvents = p.parsedEvents[1:]
+					case event := <-p.bufferedChan:
+						p.parsedEvents = append(p.parsedEvents, event)
+					}
+				} else {
+					event := <-p.bufferedChan
 					p.parsedEvents = append(p.parsedEvents, event)
 				}
-			} else {
-				event := <-p.bufferedChan
-				p.parsedEvents = append(p.parsedEvents, event)
 			}
-		}
-	}()
+		}()
+	*/
 
 	go func(input chan string) {
 		// endless loop for getting the ics urls
@@ -288,7 +294,8 @@ func (p *Parser) parseEvents(cal *Calendar, eventsData []string) {
 		event.SetID(event.GenerateEventId())
 
 		cal.SetEvent(*event)
-		p.bufferedChan <- event
+		//p.bufferedChan <- event
+		p.parsedEvents = append(p.parsedEvents, event)
 
 		if RepeatRuleApply && event.GetRRule() != "" {
 
